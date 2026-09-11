@@ -15,6 +15,17 @@ async function digest(path) {
   return createHash('sha256').update(content).digest('hex');
 }
 
+async function readEvent() {
+  const path = process.env.GITHUB_EVENT_PATH;
+  if (!path) return {};
+  try {
+    return JSON.parse(await readFile(path, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+const event = await readEvent();
 const standards = JSON.parse(await readFile('packages/governance/registry/standards.json', 'utf8'));
 const controls = JSON.parse(await readFile('packages/governance/registry/controls.json', 'utf8'));
 const digests = Object.fromEntries(await Promise.all(evidenceFiles.map(async (path) => [path, await digest(path)])));
@@ -25,8 +36,13 @@ const manifest = {
   verificationResult: process.env.EVIDENCE_RESULT ?? 'local-unasserted',
   source: {
     repository: process.env.GITHUB_REPOSITORY ?? null,
-    commit: process.env.GITHUB_SHA ?? null,
+    checkedOutCommit: process.env.GITHUB_SHA ?? null,
+    headCommit: event.pull_request?.head?.sha ?? process.env.GITHUB_SHA ?? null,
+    baseCommit: event.pull_request?.base?.sha ?? null,
     ref: process.env.GITHUB_REF ?? null,
+    headRef: process.env.GITHUB_HEAD_REF ?? null,
+    baseRef: process.env.GITHUB_BASE_REF ?? null,
+    event: process.env.GITHUB_EVENT_NAME ?? null,
     actor: process.env.GITHUB_ACTOR ?? null,
     workflow: process.env.GITHUB_WORKFLOW ?? null,
     runId: process.env.GITHUB_RUN_ID ?? null,
