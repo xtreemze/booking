@@ -46,7 +46,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ci-evidence-${{ github.sha }}
+          name: ci-evidence-${{ github.event.pull_request.head.sha || github.sha }}
           path: .evidence/
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 90
