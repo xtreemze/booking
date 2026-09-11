@@ -64,7 +64,13 @@ function remainingCapacity(
   reservations: readonly Reservation[],
 ): number {
   const collisions = reservations.filter((reservation) => {
-    if (reservation.status === 'cancelled' || reservation.resourceId !== resource.id) return false;
+    if (
+      reservation.status === 'cancelled' ||
+      reservation.businessId !== business.id ||
+      reservation.resourceId !== resource.id
+    ) {
+      return false;
+    }
     const [bookedStart, bookedEnd] = effectiveReservationInterval(reservation, business.services);
     return overlaps(start, end, bookedStart, bookedEnd);
   });
