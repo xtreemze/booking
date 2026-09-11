@@ -2,8 +2,9 @@ node_modules/
 dist/
 .vite/
 coverage/
-.DS_Store
-*.local
+.evidence/
 .env
 .env.*
 !.env.example
+.DS_Store
+*.log

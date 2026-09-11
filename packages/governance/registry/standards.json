@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-09-11",
+  "standards": [
+    { "id": "ISO/IEC 27001:2022", "title": "Information security management systems", "edition": "2022", "status": "active", "applicability": "baseline" },
+    { "id": "ISO/IEC 27701:2025", "title": "Privacy information management systems", "edition": "2025", "status": "active", "applicability": "baseline" },
+    { "id": "ISO 37301:2021", "title": "Compliance management systems", "edition": "2021", "status": "active", "applicability": "baseline" },
+    { "id": "ISO 22301:2019", "title": "Business continuity management systems", "edition": "2019", "status": "active", "applicability": "baseline" },
+    { "id": "ISO 9001:2015+Amd1:2024", "title": "Quality management systems", "edition": "2015 with Amendment 1:2024", "status": "active", "applicability": "baseline", "transitionNote": "Track the forthcoming ISO 9001 edition and perform a controlled gap assessment when formally published." },
+    { "id": "ISO/IEC 20000-1:2018", "title": "Service management system requirements", "edition": "2018", "status": "active", "applicability": "saas-operations" },
+    { "id": "ISO/IEC 27002:2022", "title": "Information security controls", "edition": "2022", "status": "guidance", "applicability": "baseline" },
+    { "id": "ISO/IEC 27005:2022", "title": "Information security risk management", "edition": "2022", "status": "guidance", "applicability": "baseline" },
+    { "id": "ISO/IEC 27017:2026", "title": "Cloud security controls", "edition": "2026", "status": "guidance", "applicability": "cloud" },
+    { "id": "ISO/IEC 27018:2025", "title": "Protection of PII in public clouds", "edition": "2025", "status": "guidance", "applicability": "cloud-pii" },
+    { "id": "ISO/IEC 27035-1:2023", "title": "Information security incident management", "edition": "2023", "status": "guidance", "applicability": "baseline" },
+    { "id": "ISO/IEC 29100:2024", "title": "Privacy framework", "edition": "2024", "status": "guidance", "applicability": "baseline" },
+    { "id": "ISO 15489-1:2016", "title": "Records management concepts and principles", "edition": "2016", "status": "guidance", "applicability": "baseline" },
+    { "id": "ISO/IEC 25010:2023", "title": "Product quality model", "edition": "2023", "status": "guidance", "applicability": "engineering" },
+    { "id": "ISO 19011:2026", "title": "Guidelines for auditing management systems", "edition": "2026", "status": "guidance", "applicability": "audit-program" },
+    { "id": "ISO 27799:2025", "title": "Information security controls in health", "edition": "2025", "status": "conditional", "applicability": "healthcare" },
+    { "id": "ISO 27789:2021", "title": "Audit trails for electronic health records", "edition": "2021", "status": "conditional", "applicability": "healthcare-ehr" },
+    { "id": "ISO/IEC 42001:2023", "title": "Artificial intelligence management systems", "edition": "2023", "status": "conditional", "applicability": "ai-enabled-features" }
+  ]
+}

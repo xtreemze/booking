@@ -8,17 +8,45 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: 24
+
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
-      - name: Test and build
-        run: npm run check
+        run: npm install --no-fund
+
+      - name: Verify workspace
+        run: npm run ci
+
+      - name: Generate CycloneDX SBOM
+        if: success()
+        run: |
+          mkdir -p .evidence
+          npm sbom --sbom-format cyclonedx > .evidence/sbom.cdx.json
+
+      - name: Generate evidence manifest
+        if: always()
+        env:
+          EVIDENCE_RESULT: ${{ job.status }}
+        run: npm run evidence:generate
+
+      - name: Upload CI evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-evidence-${{ github.sha }}
+          path: .evidence/
+          if-no-files-found: error
+          retention-days: 90

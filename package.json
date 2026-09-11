@@ -1,13 +1,27 @@
 {
   "name": "booking",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
+  "workspaces": [
+    "packages/*",
+    "services/*"
+  ],
+  "engines": {
+    "node": ">=24 <25",
+    "npm": ">=11 <12"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "test": "vitest run",
-    "check": "npm run test && npm run build",
+    "typecheck": "tsc -b",
+    "workspace:check": "node tools/check-workspace.mjs",
+    "compliance:check": "node tools/check-compliance.mjs",
+    "evidence:generate": "node tools/generate-evidence.mjs",
+    "audit:deps": "npm audit --audit-level=high",
+    "check": "npm run workspace:check && npm run compliance:check && npm run test && npm run build",
+    "ci": "npm run check && npm run audit:deps",
     "preview": "vite preview"
   },
   "dependencies": {
