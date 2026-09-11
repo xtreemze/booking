@@ -13,25 +13,30 @@ function isStatus(value: unknown): value is ReservationStatus {
 function isGuest(value: unknown): value is Guest {
   if (!value || typeof value !== 'object') return false;
   const guest = value as Record<string, unknown>;
-  return isString(guest.name) && isString(guest.email) && isString(guest.phone) && isString(guest.notes);
+  return (
+    isString(guest['name']) &&
+    isString(guest['email']) &&
+    isString(guest['phone']) &&
+    isString(guest['notes'])
+  );
 }
 
 function isReservation(value: unknown): value is Reservation {
   if (!value || typeof value !== 'object') return false;
   const item = value as Record<string, unknown>;
   return (
-    isString(item.id) &&
-    isString(item.businessId) &&
-    isString(item.serviceId) &&
-    isString(item.resourceId) &&
-    isString(item.start) &&
-    isString(item.end) &&
-    typeof item.partySize === 'number' &&
-    Number.isInteger(item.partySize) &&
-    item.partySize > 0 &&
-    isStatus(item.status) &&
-    isGuest(item.guest) &&
-    isString(item.createdAt)
+    isString(item['id']) &&
+    isString(item['businessId']) &&
+    isString(item['serviceId']) &&
+    isString(item['resourceId']) &&
+    isString(item['start']) &&
+    isString(item['end']) &&
+    typeof item['partySize'] === 'number' &&
+    Number.isInteger(item['partySize']) &&
+    item['partySize'] > 0 &&
+    isStatus(item['status']) &&
+    isGuest(item['guest']) &&
+    isString(item['createdAt'])
   );
 }
 
