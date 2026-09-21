@@ -5,6 +5,9 @@ const requiredFiles = [
   'CONTRIBUTING.md',
   '.github/CODEOWNERS',
   '.github/pull_request_template.md',
+  'package-lock.json',
+  'packages/domain/package.json',
+  'packages/booking-widget/package.json',
   'packages/governance/registry/standards.json',
   'packages/governance/registry/controls.json',
 ];
@@ -47,12 +50,6 @@ if (errors.length > 0) {
   console.error('Workspace contract violations:');
   for (const error of errors) console.error(`- ${error}`);
   process.exit(1);
-}
-
-try {
-  await access('package-lock.json');
-} catch {
-  console.warn('Workspace warning: package-lock.json is not committed yet; create and commit it before production release reproducibility is claimed.');
 }
 
 console.log('Workspace contract verified.');
