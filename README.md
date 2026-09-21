@@ -2,43 +2,41 @@
 
 A configurable reservation system for businesses that sell time, access, space, or capacity.
 
-The project avoids building separate products for barbers, clinics, restaurants, hotels, classes, and rentals. Instead, those businesses are configurations of the same scheduling primitives: **services**, **resources**, **capacity**, **availability**, and **booking policy**.
+The project avoids separate products for barbers, clinics, restaurants, hotels, classes, and rentals. Those businesses are configurations of shared scheduling primitives: **services**, **resources**, **capacity**, **availability**, and **booking policy**.
+
+## Architecture
+
+The frontend decision is deliberately split by responsibility:
+
+- **TypeScript domain package** — canonical scheduling types, presets, and availability rules.
+- **React 19.3** — application/admin composition and the configuration preview.
+- **Lit 3.3** — portable `<booking-widget>` custom element for framework-independent embedding.
+- **Vite 8** — application build and GitHub Pages static deployment.
+- **Vitest + Playwright** — deterministic domain tests plus desktop/mobile browser regression coverage.
+- **Biome** — repository linting and formatting.
+
+The React application and Lit widget consume the same `@booking/domain` workspace package. GitHub Pages is a static demonstration boundary only; production reservation commits require a transactional backend.
+
+See [`docs/architecture.md`](docs/architecture.md) for invariants and backend direction.
 
 ## What works now
 
-The first MVP is a responsive React application with five live presets:
+The responsive application includes five live presets:
 
 - **Barber** — staff-bound appointments with cleanup buffers.
-- **Clinic** — staff appointments that can require approval before confirmation.
-- **Restaurant** — party-size aware table allocation.
+- **Clinic** — staff appointments that can require approval.
+- **Restaurant** — party-size-aware table allocation.
 - **Hotel** — variable-length stays against exclusive room inventory.
-- **Studio / class** — pooled capacity where multiple reservations share the same resource until capacity is exhausted.
+- **Studio / class** — pooled shared capacity.
 
-Reservations are accepted through the UI and immediately affect subsequent availability. Demo data persists in the browser so the app can be exercised without infrastructure.
-
-## Scheduling model
-
-The important abstraction is the resource, not the industry.
-
-```text
-Business
-  ├─ policies (notice, horizon, approval, deposits, slot step)
-  ├─ services (duration, buffers, price, party size, booking mode)
-  └─ resources
-       ├─ exclusive → barber, doctor, table, hotel room, equipment
-       └─ pooled    → class, tour, workshop, shared capacity
-```
-
-Availability is calculated from business hours, service rules, resource capabilities, existing reservations, buffers, minimum notice, booking horizon, party size, and exclusive/pooled capacity semantics.
-
-See [`docs/architecture.md`](docs/architecture.md) for the invariants and production backend direction.
+Reservations made through the React demo immediately affect subsequent availability and persist in the browser. The Lit widget exposes the same availability model as an embeddable custom element and emits selection events for a host to handle.
 
 ## Development
 
-Requires a current Node.js release.
+Requires Node 24 and npm 11.
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
 
@@ -46,31 +44,19 @@ Verification:
 
 ```bash
 npm run check
+npm run test:e2e
 ```
 
-`check` runs the pure scheduling-engine tests and a strict TypeScript production build. CI runs the same command on pull requests.
+Formatting:
 
-## Stack
+```bash
+npm run format
+```
 
-- React 19.3
-- TypeScript 7 with strict compiler options
-- Vite 8
-- Vitest 5
-- Lucide icons
-- Plain CSS with responsive and reduced-motion behavior
-
-The application deliberately has a small dependency surface. The scheduling rules live in framework-independent TypeScript.
+The Vite production base is `/booking/` so the built site can deploy directly as this repository's GitHub Pages project site.
 
 ## Production boundary
 
-The current persistence adapter uses `localStorage` for a zero-configuration demonstration. That is not a production multi-user reservation database.
+The current browser persistence adapter uses `localStorage`. It is not a production multi-user reservation database.
 
-A production deployment must replace the data adapter with a transactional API/database and revalidate capacity atomically when a reservation is committed. That prevents two customers from receiving the same resource after both viewed an available slot.
-
-The domain model is already separated from persistence so this can be added without rewriting the booking UI or availability rules.
-
-## Product direction
-
-The system is intended to grow into a multi-tenant booking platform with configurable locations, resources, hours and exceptions, intake fields, waitlists, deposits/payments, reminders, calendar sync, cancellation/no-show policy, staff skill matching, resource combinations, recurring events, analytics, and embeddable/public booking surfaces.
-
-The core rule remains the same: add capabilities to the shared reservation engine instead of adding one-off industry branches.
+A production deployment must replace that adapter with a transactional API/database and revalidate capacity atomically when a reservation is committed. The shared domain package stays independent from persistence and UI frameworks so backend and client implementations can converge on the same reservation vocabulary.
