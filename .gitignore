@@ -3,6 +3,8 @@ dist/
 .vite/
 coverage/
 .evidence/
+playwright-report/
+test-results/
 .env
 .env.*
 !.env.example

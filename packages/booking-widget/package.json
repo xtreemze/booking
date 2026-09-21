@@ -1,0 +1,14 @@
+{
+  "name": "@booking/widget",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": ["src"],
+  "dependencies": {
+    "@booking/domain": "0.1.0",
+    "lit": "3.3.3"
+  }
+}

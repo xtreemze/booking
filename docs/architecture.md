@@ -5,22 +5,32 @@ Booking is modeled around capabilities rather than business categories. A barber
 ## Domain invariants
 
 - Resources declare which services they can fulfill.
-- `exclusive` resources reject any overlapping reservation. This fits people, treatment rooms, tables, hotel rooms, and equipment.
-- `pooled` resources allow concurrent reservations up to a numeric capacity. This fits classes, tours, workshops, coworking capacity, and similar inventory.
+- `exclusive` resources reject overlapping reservations.
+- `pooled` resources allow concurrent reservations up to numeric capacity.
 - Services own duration and before/after buffers.
 - Businesses own booking policy: slot granularity, notice period, booking horizon, approval requirement, cancellation notice, and deposit policy.
-- Availability is derived. The UI never decides whether a slot is valid.
-- Reservation status is explicit (`pending`, `confirmed`, `cancelled`) so approval workflows do not require a second booking model.
+- Availability is derived. UI layers never decide whether a slot is valid.
+- Reservation status is explicit (`pending`, `confirmed`, `cancelled`).
 
-## Current boundaries
+## Application boundaries
 
-The browser MVP has three deliberately separate layers:
+The repository separates product-domain authority from delivery technology:
 
-1. `src/domain` — pure types, preset configuration and deterministic availability rules.
-2. `src/data` — reservation persistence adapter. The current implementation uses `localStorage` only for a zero-infrastructure demo.
-3. `src/App.tsx` — the booking and configuration-preview experience.
+1. `packages/domain` — framework-independent types, presets, and deterministic availability rules. This is the canonical scheduling source.
+2. `packages/booking-widget` — Lit custom element for portable public booking/availability surfaces.
+3. `src/data` — persistence adapter. The current implementation uses `localStorage` only for a zero-infrastructure demo.
+4. `src/App.tsx` — React application shell and operator/configuration preview.
+5. `src/domain` — compatibility re-exports while callers migrate to `@booking/domain`.
 
-The production backend should implement the same persistence boundary using a transactional database. Slot confirmation must be revalidated in the same transaction that writes the reservation; client-side availability is advisory and cannot prevent races between customers.
+React remains the application framework for dense operator/admin workflows. Lit is deliberately limited to the embeddable web-component boundary, where framework independence and Shadow DOM encapsulation are product capabilities.
+
+The `<booking-widget>` element consumes the same domain package as React and emits a composed `booking-slot-selected` custom event. It does not own authoritative reservation persistence. A host application or production API must perform the reservation commit.
+
+## Production boundary
+
+GitHub Pages hosts the static demonstration only. It is never an authoritative reservation backend.
+
+The production backend should implement the persistence boundary using a transactional database. Slot confirmation must be revalidated in the same transaction that writes the reservation; client-side availability is advisory and cannot prevent races between customers.
 
 ## Production data model
 
@@ -41,5 +51,5 @@ The domain is intended to add these without changing the core reservation vocabu
 - intake forms and business-specific custom fields;
 - calendar sync and webhooks;
 - notification templates and reminder policies;
-- multi-resource bookings (for example clinician + room + equipment);
+- multi-resource bookings;
 - accessibility constraints and resource attributes.

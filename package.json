@@ -1,7 +1,7 @@
 {
   "name": "booking",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "workspaces": [
     "packages/*",
@@ -15,21 +15,29 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "test": "vitest run",
+    "test:e2e": "playwright test",
     "typecheck": "tsc -b",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
     "workspace:check": "node tools/check-workspace.mjs",
     "compliance:check": "node tools/check-compliance.mjs",
     "evidence:generate": "node tools/generate-evidence.mjs",
     "audit:deps": "npm audit --audit-level=high",
-    "check": "npm run workspace:check && npm run compliance:check && npm run test && npm run build",
+    "check": "npm run workspace:check && npm run compliance:check && npm run lint && npm run test && npm run build",
     "ci": "npm run check && npm run audit:deps",
     "preview": "vite preview"
   },
   "dependencies": {
+    "@booking/domain": "0.1.0",
+    "@booking/widget": "0.1.0",
     "lucide-react": "^1.44.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.14",
+    "@playwright/test": "1.63.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
