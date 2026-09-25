@@ -47,9 +47,9 @@ The Lit widget exposes the same availability model as an embeddable custom eleme
 
 ## Persistence
 
-The UI depends on a ReservationStore interface. The current browser provider uses localStorage, but the application does not depend directly on browser storage.
+The UI depends on an asynchronous ReservationStore interface. The current browser provider uses localStorage behind that contract, so the application is not coupled to synchronous browser storage.
 
-A future production provider can replace the local adapter with a transactional API/database. Slot confirmation must be revalidated atomically server-side to prevent concurrent customers from taking the same exclusive resource or exceeding pooled capacity.
+A future production provider can replace the local adapter with a transactional PostgreSQL-backed API. A hosted PostgreSQL platform such as Supabase is a practical deployment option, but reservation commits still need a server/RPC transaction that revalidates capacity atomically before writing.
 
 ## Development
 
