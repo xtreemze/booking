@@ -453,12 +453,12 @@ export function App() {
                 })}
               </div>
 
-              <div className="choice-block">
-                <div className="section-label">
+              <fieldset className="delivery-choices">
+                <legend className="section-label">
                   <MapPin aria-hidden="true" />
-                  <span>Where the service happens</span>
-                </div>
-                <div className="choice-row" role="group" aria-label="Service delivery">
+                  Where the service happens
+                </legend>
+                <div className="choice-row">
                   {serviceDeliveryModes.map((mode) => {
                     const DeliveryIcon = deliveryMeta[mode].icon;
                     return (
@@ -475,7 +475,7 @@ export function App() {
                     );
                   })}
                 </div>
-              </div>
+              </fieldset>
             </fieldset>
 
             <fieldset>
