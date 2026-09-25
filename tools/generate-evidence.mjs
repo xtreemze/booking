@@ -3,7 +3,10 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 
 const evidenceFiles = [
   'package.json',
-  'tsconfig.app.json',
+  'tsconfig.base.json',
+  'apps/web/tsconfig.json',
+  'apps/web/astro.config.mjs',
+  'biome.json',
   '.github/workflows/ci.yml',
   '.github/workflows/codeql.yml',
   'packages/governance/registry/standards.json',
