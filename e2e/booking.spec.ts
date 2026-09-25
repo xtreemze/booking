@@ -41,6 +41,12 @@ test('Lit widget consumes the shared booking model', async ({ page }) => {
   });
   await widget.getByLabel('Date').fill(future);
   await expect(widget.getByText(/available option|No availability/)).toBeVisible();
+
+  await widget.evaluate((element) => element.setAttribute('business-id', 'audio-demo'));
+  await expect(widget.getByRole('heading', { name: 'Signal Room Audio' })).toBeVisible();
+  await expect(widget.getByRole('button', { name: 'At the business' })).toBeVisible();
+  await expect(widget.getByRole('button', { name: 'At your location' })).toBeVisible();
+  await expect(widget.getByRole('button', { name: 'Online' })).toBeVisible();
 });
 
 test('mobile layout does not overflow horizontally', async ({ page }, testInfo) => {
