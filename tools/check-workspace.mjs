@@ -6,6 +6,8 @@ const requiredFiles = [
   '.github/CODEOWNERS',
   '.github/pull_request_template.md',
   'package-lock.json',
+  'apps/web/package.json',
+  'apps/web/astro.config.mjs',
   'packages/domain/package.json',
   'packages/booking-widget/package.json',
   'packages/governance/registry/standards.json',
@@ -13,13 +15,13 @@ const requiredFiles = [
 ];
 
 const packageJson = JSON.parse(await readFile('package.json', 'utf8'));
-const tsconfig = JSON.parse(await readFile('tsconfig.app.json', 'utf8'));
+const tsconfig = JSON.parse(await readFile('tsconfig.base.json', 'utf8'));
 
 const errors = [];
 
 if (packageJson.private !== true) errors.push('Root package must remain private.');
 if (!Array.isArray(packageJson.workspaces)) errors.push('Root package must declare npm workspaces.');
-for (const workspace of ['packages/*', 'services/*']) {
+for (const workspace of ['apps/*', 'packages/*', 'services/*']) {
   if (!packageJson.workspaces?.includes(workspace)) errors.push(`Missing workspace pattern: ${workspace}`);
 }
 

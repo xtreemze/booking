@@ -8,6 +8,9 @@
     ".": "./src/index.ts"
   },
   "files": ["src"],
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
   "dependencies": {
     "@booking/domain": "0.1.0",
     "lit": "3.3.3"

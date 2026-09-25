@@ -4,7 +4,7 @@
 
 The repository is an npm workspace:
 
-- `/src` — React application shell, local persistence adapter, and compatibility imports
+- `/apps/web` — Astro application shell, Solid client islands, browser persistence adapters, and deployable static output
 - `/packages/domain` — canonical framework-independent scheduling model
 - `/packages/booking-widget` — Lit custom element for embeddable public booking
 - `/packages/governance` — versioned standards/control metadata
@@ -12,17 +12,25 @@ The repository is an npm workspace:
 - `/tools` — deterministic repository, governance, and evidence checks
 - `/.github` — CI, Pages deployment, security automation, ownership, and review policy
 
+## Toolchain
+
+The root workspace pins the repository-wide engineering tools. Astro owns the web build and uses Vite 8 internally. Solid is integrated through the official Astro integration. Biome owns formatting and linting across Astro, TypeScript, JavaScript, CSS, JSON, and repository configuration.
+
+Framework dependencies belong to the application or package that actually uses them; the root remains orchestration-only.
+
 ## Required verification
 
-`npm run check` is the deterministic engineering gate: workspace contract, governance registry validation, Biome linting, domain tests, strict TypeScript, and production build.
+`npm run check` is the deterministic engineering gate: workspace contract, governance registry validation, Biome linting, domain tests, workspace type checking, and the Astro production build.
 
-`npm run ci` adds the dependency vulnerability gate. Playwright runs separately in CI against the production Vite build at the GitHub Pages base path.
+`npm run ci` adds the dependency vulnerability gate. Playwright runs separately in CI against the production Astro preview at the GitHub Pages base path.
 
 ## Package boundaries
 
-Reusable packages expose explicit public APIs. Services may depend on packages, but packages must not depend on deployable services. UI packages consume `@booking/domain`; the domain must never import React, Lit, browser persistence, GitHub, CI, or evidence implementation details.
+Reusable packages expose explicit public APIs. Services may depend on packages, but packages must not depend on deployable services.
 
-React is retained for application/admin composition. Lit is used for the web-component distribution boundary rather than as a wholesale application rewrite.
+`@booking/domain` must never import Astro, Solid, Lit, browser persistence, GitHub, CI, or evidence implementation details. The Astro/Solid application and Lit widget both consume that domain API.
+
+Astro owns pages and composition. Solid owns stateful application islands. Lit is reserved for portable custom elements rather than being used as a second application framework.
 
 ## Reproducibility
 
@@ -30,7 +38,7 @@ The dependency graph is lockfile-controlled. CI and Pages use `npm ci`; changes 
 
 ## Static deployment boundary
 
-GitHub Pages deploys the Vite production output under `/booking/`. It is a demonstration and embeddable-client host only. Transactional reservation commits, tenant isolation, payments, secrets, and audit records belong in backend services.
+GitHub Pages deploys `apps/web/dist` under `/booking/`. It is a demonstration and embeddable-client host only. Transactional reservation commits, tenant isolation, payments, secrets, and audit records belong in backend services.
 
 ## Evidence evolution
 
