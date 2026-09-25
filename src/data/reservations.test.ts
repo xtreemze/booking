@@ -35,6 +35,26 @@ describe('relative local demo reservations', () => {
     expect(later[0]?.start).not.toBe(first[0]?.start);
   });
 
+  it('migrates legacy local reservations into the async provider', async () => {
+    const storage = memoryStorage();
+    const now = new Date(2026, 0, 5, 9, 0, 0);
+    const legacyReservation = {
+      ...createExampleReservations(now)[0],
+      id: 'legacy-user-reservation',
+      customerId: undefined,
+      deliveryMode: undefined,
+      intake: undefined,
+    } as Reservation;
+
+    storage.setItem('booking.reservations.v1', JSON.stringify([legacyReservation]));
+    const store = createLocalReservationStore(storage, () => now);
+    const migrated = await store.load();
+
+    expect(migrated.some((reservation) => reservation.id === legacyReservation.id)).toBe(true);
+    expect(migrated.filter((reservation) => reservation.id.startsWith('example:'))).toHaveLength(5);
+    expect(storage.getItem('booking.reservations.v1')).toBeNull();
+  });
+
   it('rebases seeded examples on a new day while preserving visitor-created local bookings', async () => {
     const storage = memoryStorage();
     let now = new Date(2026, 0, 5, 9, 0, 0);
