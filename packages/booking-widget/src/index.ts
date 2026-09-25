@@ -148,6 +148,7 @@ export class BookingWidget extends LitElement {
     const business = this.business;
     const service = this.service;
     if (!service) return html`<p>No services are configured.</p>`;
+    const deliveryModes: readonly DeliveryMode[] = service.deliveryModes ?? ['business'];
 
     return html`
       <section class="surface" aria-label="Booking availability">
@@ -177,7 +178,7 @@ export class BookingWidget extends LitElement {
         </div>
 
         <div class="delivery" role="group" aria-label="Service delivery">
-          ${(service.deliveryModes ?? ['business']).map(
+          ${deliveryModes.map(
             (mode) => html`
               <button
                 type="button"
