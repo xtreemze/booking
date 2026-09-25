@@ -1,0 +1,64 @@
+import { describe, expect, it } from 'vitest';
+import type { Reservation } from '../domain/types';
+import {
+  createExampleReservations,
+  createLocalReservationStore,
+  type ReservationStorage,
+  VISITOR_CUSTOMER_ID,
+} from './reservations';
+
+function memoryStorage(): ReservationStorage {
+  const values = new Map<string, string>();
+  return {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => {
+      values.set(key, value);
+    },
+    removeItem: (key) => {
+      values.delete(key);
+    },
+  };
+}
+
+describe('relative local demo reservations', () => {
+  it('creates exactly one existing visitor booking and keeps all examples relative to the supplied day', () => {
+    const firstDay = new Date(2026, 0, 5, 9, 0, 0);
+    const laterDay = new Date(2026, 0, 12, 9, 0, 0);
+
+    const first = createExampleReservations(firstDay);
+    const later = createExampleReservations(laterDay);
+
+    expect(first).toHaveLength(5);
+    expect(first.filter((reservation) => reservation.customerId === VISITOR_CUSTOMER_ID)).toHaveLength(1);
+    expect(first.every((reservation) => new Date(reservation.start) > firstDay)).toBe(true);
+    expect(later.every((reservation) => new Date(reservation.start) > laterDay)).toBe(true);
+    expect(later[0]?.start).not.toBe(first[0]?.start);
+  });
+
+  it('rebases seeded examples on a new day while preserving visitor-created local bookings', () => {
+    const storage = memoryStorage();
+    let now = new Date(2026, 0, 5, 9, 0, 0);
+    const store = createLocalReservationStore(storage, () => now);
+    const seeded = store.load();
+    const originalExampleStart = seeded[0]?.start;
+
+    const visitorSeed = seeded.find((reservation) => reservation.customerId === VISITOR_CUSTOMER_ID);
+    expect(visitorSeed).toBeDefined();
+
+    const userReservation: Reservation = {
+      ...(visitorSeed as Reservation),
+      id: 'user-created-reservation',
+      createdAt: now.toISOString(),
+    };
+    store.save([...seeded, userReservation]);
+
+    now = new Date(2026, 0, 6, 9, 0, 0);
+    const rebased = store.load();
+
+    expect(rebased).toHaveLength(seeded.length + 1);
+    expect(rebased.find((reservation) => reservation.id === userReservation.id)).toEqual(userReservation);
+    expect(rebased.find((reservation) => reservation.id === seeded[0]?.id)?.start).not.toBe(
+      originalExampleStart,
+    );
+  });
+});
