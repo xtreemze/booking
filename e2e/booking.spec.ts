@@ -19,7 +19,7 @@ test('supports consultation presets with delivery and intake components', async 
   await expect(page.getByRole('button', { name: 'At the business' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'At your location' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Online' })).toBeVisible();
-  await expect(page.getByLabel('Primary goal *')).toBeVisible();
+  await expect(page.getByLabel('Primary goal')).toBeVisible();
   await expect(page.getByLabel('Current equipment')).toBeVisible();
 });
 
