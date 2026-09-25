@@ -32,7 +32,7 @@ The <booking-widget> element consumes the same domain package as React and emits
 
 ## Persistence boundary
 
-The application consumes the ReservationStore interface rather than browser storage directly.
+The application consumes an asynchronous ReservationStore interface rather than browser storage directly, so a network-backed provider can implement the same contract.
 
 The demo provider:
 
@@ -43,7 +43,7 @@ The demo provider:
 - preserves visitor-created local reservations;
 - includes one seeded booking owned by the demo visitor so the upcoming-booking UI is always testable.
 
-A production provider can replace the local implementation without changing the domain or booking components.
+A production provider can replace the local implementation without changing the domain or booking components. PostgreSQL is the preferred transactional authority; a hosted PostgreSQL service such as Supabase can implement this boundary through server/RPC transactions rather than direct client-only writes.
 
 GitHub Pages hosts the static demonstration only. It is never an authoritative reservation backend.
 
