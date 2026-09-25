@@ -289,6 +289,12 @@ export function App() {
       return;
     }
 
+    const normalizedIntake: Record<string, string> = {};
+    for (const [key, value] of Object.entries(intake)) {
+      const trimmed = value.trim();
+      if (trimmed) normalizedIntake[key] = trimmed;
+    }
+
     const reservation: Reservation = {
       id: createReservationId(),
       businessId: business.id,
@@ -300,11 +306,7 @@ export function App() {
       status: business.policy.requiresApproval ? 'pending' : 'confirmed',
       customerId: VISITOR_CUSTOMER_ID,
       deliveryMode,
-      intake: Object.fromEntries(
-        Object.entries(intake)
-          .map(([key, value]) => [key, value.trim()])
-          .filter(([, value]) => value.length > 0),
-      ),
+      intake: normalizedIntake,
       guest: {
         name: guest.name.trim(),
         email: guest.email.trim(),
