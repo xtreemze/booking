@@ -57,9 +57,9 @@ One seeded reservation belongs to the local demo visitor so the "Your upcoming b
 
 ## Persistence boundary
 
-The UI depends on the `ReservationStore` interface. The browser implementation uses `localStorage`, but scheduling code does not.
+The UI depends on the asynchronous `ReservationStore` interface. The browser implementation uses `localStorage`, but scheduling code does not depend on synchronous browser storage.
 
-A production provider should implement the same logical operations against a transactional API. Reservation commits must re-check resource/capacity availability atomically on the server.
+A production provider should implement the same operations against a transactional PostgreSQL-backed API. A hosted PostgreSQL provider such as Supabase is suitable when reservation creation is routed through a transaction-capable server/RPC function. Reservation commits must re-check resource/capacity availability atomically.
 
 ## Frontend framework
 
