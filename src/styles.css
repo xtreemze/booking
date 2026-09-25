@@ -356,10 +356,6 @@ legend span {
   border: 0;
 }
 
-.delivery-choices > .section-label {
-  padding: 0;
-}
-
 .choice-row {
   display: flex;
   flex-wrap: wrap;
@@ -454,6 +450,10 @@ textarea {
   color: #475467;
   font-size: 0.84rem;
   font-weight: 700;
+}
+
+.delivery-choices > .section-label {
+  padding: 0;
 }
 
 .section-label svg {
