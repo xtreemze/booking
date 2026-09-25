@@ -9,6 +9,7 @@ import type {
 } from '../domain/types';
 
 const STORAGE_KEY = 'booking.reservations.v2';
+const LEGACY_STORAGE_KEY = 'booking.reservations.v1';
 const STORAGE_VERSION = 2;
 const EXAMPLE_PREFIX = 'example:';
 
@@ -21,9 +22,9 @@ export interface ReservationStorage {
 }
 
 export interface ReservationStore {
-  load(): readonly Reservation[];
-  save(reservations: readonly Reservation[]): void;
-  reset(): readonly Reservation[];
+  load(): Promise<readonly Reservation[]>;
+  save(reservations: readonly Reservation[]): Promise<void>;
+  readonly reset?: () => Promise<readonly Reservation[]>;
 }
 
 interface StoredReservations {
@@ -256,24 +257,41 @@ export function createLocalReservationStore(
     storage.setItem(STORAGE_KEY, JSON.stringify(envelope));
   }
 
-  function reset(): readonly Reservation[] {
+  function resetSeed(): readonly Reservation[] {
     const now = clock();
     const reservations = createExampleReservations(now);
     write(reservations, dateInputValue(now));
     return reservations;
   }
 
+  function migrateLegacy(now: Date): readonly Reservation[] | null {
+    const legacyRaw = storage.getItem(LEGACY_STORAGE_KEY);
+    if (!legacyRaw) return null;
+
+    try {
+      const legacyParsed: unknown = JSON.parse(legacyRaw);
+      if (!Array.isArray(legacyParsed)) return null;
+      const legacyReservations = legacyParsed.filter(isReservation);
+      const reservations = [...createExampleReservations(now), ...legacyReservations];
+      write(reservations, dateInputValue(now));
+      storage.removeItem(LEGACY_STORAGE_KEY);
+      return reservations;
+    } catch {
+      return null;
+    }
+  }
+
   return {
-    load(): readonly Reservation[] {
+    async load(): Promise<readonly Reservation[]> {
       const now = clock();
       const today = dateInputValue(now);
 
       try {
         const raw = storage.getItem(STORAGE_KEY);
-        if (!raw) return reset();
+        if (!raw) return migrateLegacy(now) ?? resetSeed();
 
         const parsed: unknown = JSON.parse(raw);
-        if (!isStoredReservations(parsed)) return reset();
+        if (!isStoredReservations(parsed)) return resetSeed();
 
         if (parsed.seededOn !== today) {
           const userReservations = parsed.reservations.filter(
@@ -286,15 +304,15 @@ export function createLocalReservationStore(
 
         return parsed.reservations;
       } catch {
-        return reset();
+        return resetSeed();
       }
     },
 
-    save(reservations: readonly Reservation[]): void {
+    async save(reservations: readonly Reservation[]): Promise<void> {
       write(reservations);
     },
 
-    reset,
+    reset: async (): Promise<readonly Reservation[]> => resetSeed(),
   };
 }
 
