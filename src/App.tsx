@@ -245,6 +245,8 @@ export function App() {
     visitorReservation && visitorBusiness
       ? serviceForReservation(visitorBusiness, visitorReservation)
       : undefined;
+  const visitorDeliveryMode = visitorReservation?.deliveryMode;
+  const VisitorDeliveryIcon = visitorDeliveryMode ? deliveryMeta[visitorDeliveryMode].icon : null;
 
   function resetBookingInputs(nextService: Service | undefined): void {
     setPartySize(1);
@@ -371,13 +373,10 @@ export function App() {
               }).format(new Date(visitorReservation.start))}
             </p>
             <div className="booking-meta">
-              {visitorReservation.deliveryMode ? (
+              {visitorDeliveryMode && VisitorDeliveryIcon ? (
                 <span>
-                  {(() => {
-                    const DeliveryIcon = deliveryMeta[visitorReservation.deliveryMode].icon;
-                    return <DeliveryIcon aria-hidden="true" />;
-                  })()}
-                  {deliveryMeta[visitorReservation.deliveryMode].label}
+                  <VisitorDeliveryIcon aria-hidden="true" />
+                  {deliveryMeta[visitorDeliveryMode].label}
                 </span>
               ) : null}
               <span className="status" data-status={visitorReservation.status}>
