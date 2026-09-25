@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import {
   BedDouble,
@@ -194,11 +194,26 @@ export function App() {
     business.services[0]?.deliveryModes?.[0] ?? 'business',
   );
   const [intake, setIntake] = useState<Record<string, string>>({});
-  const [reservations, setReservations] = useState<readonly Reservation[]>(() => store.load());
+  const [reservations, setReservations] = useState<readonly Reservation[]>([]);
+  const [reservationsLoaded, setReservationsLoaded] = useState(false);
   const [receipt, setReceipt] = useState<Reservation | null>(null);
 
+  useEffect(() => {
+    let active = true;
+
+    void store.load().then((loaded) => {
+      if (!active) return;
+      setReservations(loaded);
+      setReservationsLoaded(true);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [store]);
+
   const slots = useMemo(() => {
-    if (!service) return [];
+    if (!service || !reservationsLoaded) return [];
     return findAvailability(
       {
         business,
@@ -209,7 +224,7 @@ export function App() {
       },
       reservations,
     );
-  }, [business, date, nights, partySize, reservations, service]);
+  }, [business, date, nights, partySize, reservations, reservationsLoaded, service]);
 
   const chosenSlot = slots.find((slot) => slotKey(slot) === selectedSlot);
   const businessReservations = reservations
@@ -260,7 +275,7 @@ export function App() {
     setIntake((current) => ({ ...current, [fieldId]: value }));
   }
 
-  function submit(event: FormEvent<HTMLFormElement>): void {
+  async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (
       !service ||
@@ -298,14 +313,15 @@ export function App() {
     };
 
     const next = [...reservations, reservation];
+    await store.save(next);
     setReservations(next);
-    store.save(next);
     setReceipt(reservation);
     setSelectedSlot('');
   }
 
-  function resetDemoData(): void {
-    const seeded = store.reset();
+  async function resetDemoData(): Promise<void> {
+    if (!store.reset) return;
+    const seeded = await store.reset();
     setReservations(seeded);
     setReceipt(null);
     setSelectedSlot('');
@@ -513,9 +529,11 @@ export function App() {
                 <div className="section-label">
                   <Clock3 aria-hidden="true" />
                   <span>
-                    {slots.length > 0
-                      ? `${slots.length} available option${slots.length === 1 ? '' : 's'}`
-                      : 'No availability for this date'}
+                    {!reservationsLoaded
+                      ? 'Loading availability'
+                      : slots.length > 0
+                        ? `${slots.length} available option${slots.length === 1 ? '' : 's'}`
+                        : 'No availability for this date'}
                   </span>
                 </div>
                 <div className="slot-grid">
@@ -615,7 +633,7 @@ export function App() {
               <button
                 className="primary-button"
                 type="submit"
-                disabled={!chosenSlot || !intakeComplete}
+                disabled={!reservationsLoaded || !chosenSlot || !intakeComplete}
               >
                 {business.policy.requiresApproval ? 'Request reservation' : 'Confirm reservation'}
               </button>
@@ -688,7 +706,10 @@ export function App() {
           <button
             className="text-button"
             type="button"
-            onClick={resetDemoData}
+            onClick={() => {
+              void resetDemoData();
+            }}
+            disabled={!reservationsLoaded || !store.reset}
           >
             <RotateCcw aria-hidden="true" /> Reset relative demo data
           </button>
