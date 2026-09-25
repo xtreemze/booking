@@ -3,27 +3,45 @@ import type { FormEvent } from 'react';
 import {
   BedDouble,
   CalendarCheck2,
+  Camera,
   CheckCircle2,
   CircleDollarSign,
   Clock3,
   Dumbbell,
+  GraduationCap,
+  Home,
+  MapPin,
+  Palette,
+  PawPrint,
   RotateCcw,
+  Scale,
   Scissors,
   Settings2,
   ShieldCheck,
+  Sparkles,
+  Speaker,
   Stethoscope,
+  Store,
   Users,
   UtensilsCrossed,
+  Video,
+  Wrench,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { createReservationId, loadReservations, persistReservations } from './data/reservations';
+import {
+  createBrowserReservationStore,
+  createReservationId,
+  VISITOR_CUSTOMER_ID,
+} from './data/reservations';
 import { findAvailability, formatMoney, formatSlot } from './domain/availability';
 import { businesses, defaultBusiness } from './domain/presets';
 import type {
   AvailableSlot,
   BusinessConfig,
   BusinessPreset,
+  DeliveryMode,
   Guest,
+  IntakeField,
   Reservation,
   Service,
 } from './domain/types';
@@ -34,6 +52,20 @@ const presetMeta: Record<BusinessPreset, { readonly label: string; readonly icon
   restaurant: { label: 'Restaurant', icon: UtensilsCrossed },
   hotel: { label: 'Hotel', icon: BedDouble },
   studio: { label: 'Class / studio', icon: Dumbbell },
+  'interior-design': { label: 'Interior design', icon: Palette },
+  'audio-consulting': { label: 'Audio / AV', icon: Speaker },
+  legal: { label: 'Legal', icon: Scale },
+  tutoring: { label: 'Tutoring', icon: GraduationCap },
+  'home-service': { label: 'Home service', icon: Wrench },
+  photography: { label: 'Photography', icon: Camera },
+  beauty: { label: 'Beauty', icon: Sparkles },
+  'pet-care': { label: 'Pet care', icon: PawPrint },
+};
+
+const deliveryMeta: Record<DeliveryMode, { readonly label: string; readonly icon: LucideIcon }> = {
+  business: { label: 'At the business', icon: Store },
+  customer: { label: 'At your location', icon: MapPin },
+  virtual: { label: 'Online', icon: Video },
 };
 
 function dateInputValue(date: Date): string {
@@ -51,7 +83,21 @@ function resourceLabel(business: BusinessConfig, resourceId: string): string {
   return business.resources.find((resource) => resource.id === resourceId)?.name ?? 'Available resource';
 }
 
-function ReservationReceipt({ reservation, business, service }: {
+function serviceForReservation(business: BusinessConfig, reservation: Reservation): Service | undefined {
+  return business.services.find((service) => service.id === reservation.serviceId);
+}
+
+function requiredIntakeComplete(service: Service, intake: Readonly<Record<string, string>>): boolean {
+  return (service.intakeFields ?? []).every(
+    (field) => !field.required || Boolean(intake[field.id]?.trim()),
+  );
+}
+
+function ReservationReceipt({
+  reservation,
+  business,
+  service,
+}: {
   readonly reservation: Reservation;
   readonly business: BusinessConfig;
   readonly service: Service;
@@ -64,7 +110,11 @@ function ReservationReceipt({ reservation, business, service }: {
         <h2>{reservation.status === 'pending' ? 'Request pending approval' : 'You are booked'}</h2>
         <p>
           {service.name} at {business.name} on{' '}
-          {new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(reservation.start))}.
+          {new Intl.DateTimeFormat(undefined, {
+            dateStyle: 'medium',
+            timeStyle: 'short',
+          }).format(new Date(reservation.start))}
+          .
         </p>
         <p className="muted">Reference {reservation.id.slice(0, 8).toUpperCase()}</p>
       </div>
@@ -72,8 +122,66 @@ function ReservationReceipt({ reservation, business, service }: {
   );
 }
 
+function IntakeControl({
+  field,
+  value,
+  onChange,
+}: {
+  readonly field: IntakeField;
+  readonly value: string;
+  readonly onChange: (value: string) => void;
+}) {
+  const label = (
+    <>
+      {field.label}
+      {field.required ? <span className="required-mark" aria-hidden="true"> *</span> : null}
+    </>
+  );
+
+  if (field.type === 'textarea') {
+    return (
+      <label className="intake-wide">
+        <span>{label}</span>
+        <textarea
+          required={field.required}
+          value={value}
+          placeholder={field.placeholder}
+          onChange={(event) => onChange(event.target.value)}
+        />
+      </label>
+    );
+  }
+
+  if (field.type === 'select') {
+    return (
+      <label>
+        <span>{label}</span>
+        <select required={field.required} value={value} onChange={(event) => onChange(event.target.value)}>
+          <option value="">Choose an option</option>
+          {(field.options ?? []).map((option) => (
+            <option key={option} value={option}>{option}</option>
+          ))}
+        </select>
+      </label>
+    );
+  }
+
+  return (
+    <label>
+      <span>{label}</span>
+      <input
+        required={field.required}
+        value={value}
+        placeholder={field.placeholder}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </label>
+  );
+}
+
 export function App() {
   const today = useMemo(() => dateInputValue(new Date()), []);
+  const store = useMemo(() => createBrowserReservationStore(), []);
   const [businessId, setBusinessId] = useState<string>(defaultBusiness.id);
   const business: BusinessConfig = businesses.find((item) => item.id === businessId) ?? defaultBusiness;
   const [serviceId, setServiceId] = useState<string>(business.services[0]?.id ?? '');
@@ -83,7 +191,11 @@ export function App() {
   const [nights, setNights] = useState(1);
   const [selectedSlot, setSelectedSlot] = useState<string>('');
   const [guest, setGuest] = useState<Guest>({ name: '', email: '', phone: '', notes: '' });
-  const [reservations, setReservations] = useState<readonly Reservation[]>(() => loadReservations());
+  const [deliveryMode, setDeliveryMode] = useState<DeliveryMode>(
+    business.services[0]?.deliveryModes?.[0] ?? 'business',
+  );
+  const [intake, setIntake] = useState<Record<string, string>>({});
+  const [reservations, setReservations] = useState<readonly Reservation[]>(() => store.load());
   const [receipt, setReceipt] = useState<Reservation | null>(null);
 
   const slots = useMemo(() => {
@@ -105,30 +217,61 @@ export function App() {
     .filter((reservation) => reservation.businessId === business.id && reservation.status !== 'cancelled')
     .sort((a, b) => a.start.localeCompare(b.start));
 
-  function chooseBusiness(next: BusinessConfig): void {
-    setBusinessId(next.id);
-    setServiceId(next.services[0]?.id ?? '');
+  const visitorReservations = reservations
+    .filter(
+      (reservation) =>
+        reservation.customerId === VISITOR_CUSTOMER_ID && reservation.status !== 'cancelled',
+    )
+    .sort((a, b) => a.start.localeCompare(b.start));
+  const visitorReservation = visitorReservations[0] ?? null;
+  const visitorBusiness = visitorReservation
+    ? businesses.find((item) => item.id === visitorReservation.businessId)
+    : undefined;
+  const visitorService =
+    visitorReservation && visitorBusiness
+      ? serviceForReservation(visitorBusiness, visitorReservation)
+      : undefined;
+
+  function resetBookingInputs(nextService: Service | undefined): void {
     setPartySize(1);
     setNights(1);
     setSelectedSlot('');
     setReceipt(null);
+    setDeliveryMode(nextService?.deliveryModes?.[0] ?? 'business');
+    setIntake({});
+  }
+
+  function chooseBusiness(next: BusinessConfig): void {
+    const nextService = next.services[0];
+    setBusinessId(next.id);
+    setServiceId(nextService?.id ?? '');
+    resetBookingInputs(nextService);
   }
 
   function chooseService(next: Service): void {
     setServiceId(next.id);
-    setPartySize(1);
-    setNights(1);
-    setSelectedSlot('');
-    setReceipt(null);
+    resetBookingInputs(next);
   }
 
   function updateGuest(field: keyof Guest, value: string): void {
     setGuest((current) => ({ ...current, [field]: value }));
   }
 
+  function updateIntake(fieldId: string, value: string): void {
+    setIntake((current) => ({ ...current, [fieldId]: value }));
+  }
+
   function submit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
-    if (!service || !chosenSlot || !guest.name.trim() || !guest.email.trim()) return;
+    if (
+      !service ||
+      !chosenSlot ||
+      !guest.name.trim() ||
+      !guest.email.trim() ||
+      !requiredIntakeComplete(service, intake)
+    ) {
+      return;
+    }
 
     const reservation: Reservation = {
       id: createReservationId(),
@@ -139,6 +282,13 @@ export function App() {
       end: chosenSlot.end.toISOString(),
       partySize,
       status: business.policy.requiresApproval ? 'pending' : 'confirmed',
+      customerId: VISITOR_CUSTOMER_ID,
+      deliveryMode,
+      intake: Object.fromEntries(
+        Object.entries(intake)
+          .map(([key, value]) => [key, value.trim()])
+          .filter(([, value]) => value.length > 0),
+      ),
       guest: {
         name: guest.name.trim(),
         email: guest.email.trim(),
@@ -150,14 +300,14 @@ export function App() {
 
     const next = [...reservations, reservation];
     setReservations(next);
-    persistReservations(next);
+    store.save(next);
     setReceipt(reservation);
     setSelectedSlot('');
   }
 
-  function clearDemoData(): void {
-    setReservations([]);
-    persistReservations([]);
+  function resetDemoData(): void {
+    const seeded = store.reset();
+    setReservations(seeded);
     setReceipt(null);
     setSelectedSlot('');
   }
@@ -167,10 +317,16 @@ export function App() {
   }
 
   const Icon = presetMeta[business.preset].icon;
-  const duration = service.mode === 'stay' ? `${nights} night${nights === 1 ? '' : 's'}` : `${service.durationMinutes} min`;
-  const price = service.mode === 'stay'
-    ? formatMoney(service.priceCents * nights, business.currency)
-    : formatMoney(service.priceCents, business.currency);
+  const duration =
+    service.mode === 'stay'
+      ? `${nights} night${nights === 1 ? '' : 's'}`
+      : `${service.durationMinutes} min`;
+  const price =
+    service.mode === 'stay'
+      ? formatMoney(service.priceCents * nights, business.currency)
+      : formatMoney(service.priceCents, business.currency);
+  const serviceDeliveryModes = service.deliveryModes ?? ['business'];
+  const intakeComplete = requiredIntakeComplete(service, intake);
 
   return (
     <div className="app-shell">
@@ -178,14 +334,53 @@ export function App() {
         <div className="brand-mark"><CalendarCheck2 aria-hidden="true" /></div>
         <div>
           <p className="eyebrow">Booking / configurable reservation engine</p>
-          <h1>One booking system. Different operational realities.</h1>
+          <h1>Book time, expertise, space or capacity.</h1>
           <p className="hero-copy">
-            Appointments, tables, rooms and pooled capacity use one scheduling core while keeping the policies that make each business different.
+            One mobile-first flow covers appointments, consultations, field visits, tables,
+            rooms, classes and other reservation models by composing shared booking capabilities.
           </p>
         </div>
       </header>
 
-      <nav className="preset-switcher" aria-label="Business examples">
+      {visitorReservation && visitorBusiness && visitorService ? (
+        <section className="visitor-booking" aria-labelledby="visitor-booking-title">
+          <div className="visitor-booking-icon"><CalendarCheck2 aria-hidden="true" /></div>
+          <div className="visitor-booking-copy">
+            <p className="eyebrow">Your upcoming booking</p>
+            <h2 id="visitor-booking-title">{visitorService.name}</h2>
+            <p>
+              {visitorBusiness.name} ·{' '}
+              {new Intl.DateTimeFormat(undefined, {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+              }).format(new Date(visitorReservation.start))}
+            </p>
+            <div className="booking-meta">
+              {visitorReservation.deliveryMode ? (
+                <span>
+                  {(() => {
+                    const DeliveryIcon = deliveryMeta[visitorReservation.deliveryMode].icon;
+                    return <DeliveryIcon aria-hidden="true" />;
+                  })()}
+                  {deliveryMeta[visitorReservation.deliveryMode].label}
+                </span>
+              ) : null}
+              <span className="status" data-status={visitorReservation.status}>
+                {visitorReservation.status}
+              </span>
+            </div>
+          </div>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => chooseBusiness(visitorBusiness)}
+          >
+            View availability
+          </button>
+        </section>
+      ) : null}
+
+      <nav className="preset-switcher" aria-label="Booking service examples">
         {businesses.map((item) => {
           const MetaIcon = presetMeta[item.preset].icon;
           const active = item.id === business.id;
@@ -210,7 +405,7 @@ export function App() {
           <div className="business-heading">
             <div className="business-icon"><Icon aria-hidden="true" /></div>
             <div>
-              <p className="eyebrow">{presetMeta[business.preset].label} preset</p>
+              <p className="eyebrow">{presetMeta[business.preset].label} example</p>
               <h2>{business.name}</h2>
               <p>{business.tagline}</p>
             </div>
@@ -235,10 +430,37 @@ export function App() {
                     >
                       <strong>{item.name}</strong>
                       <span>{item.description}</span>
-                      <small>{item.mode === 'stay' ? 'Per night' : `${item.durationMinutes} min`} · {formatMoney(item.priceCents, business.currency)}</small>
+                      <small>
+                        {item.mode === 'stay' ? 'Per night' : `${item.durationMinutes} min`} ·{' '}
+                        {formatMoney(item.priceCents, business.currency)}
+                      </small>
                     </button>
                   );
                 })}
+              </div>
+
+              <div className="choice-block">
+                <div className="section-label">
+                  <MapPin aria-hidden="true" />
+                  <span>Where the service happens</span>
+                </div>
+                <div className="choice-row" role="group" aria-label="Service delivery">
+                  {serviceDeliveryModes.map((mode) => {
+                    const DeliveryIcon = deliveryMeta[mode].icon;
+                    return (
+                      <button
+                        key={mode}
+                        className="choice-button"
+                        type="button"
+                        aria-pressed={deliveryMode === mode}
+                        onClick={() => setDeliveryMode(mode)}
+                      >
+                        <DeliveryIcon aria-hidden="true" />
+                        {deliveryMeta[mode].label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </fieldset>
 
@@ -251,17 +473,24 @@ export function App() {
                     type="date"
                     min={today}
                     value={date}
-                    onChange={(event) => { setDate(event.target.value); setSelectedSlot(''); setReceipt(null); }}
+                    onChange={(event) => {
+                      setDate(event.target.value);
+                      setSelectedSlot('');
+                      setReceipt(null);
+                    }}
                   />
                 </label>
                 <label>
-                  {service.mode === 'appointment' ? 'Guests' : 'Party size'}
+                  {service.mode === 'appointment' ? 'Attendees' : 'Party size'}
                   <input
                     type="number"
                     min={1}
                     max={service.maxPartySize}
                     value={partySize}
-                    onChange={(event) => { setPartySize(Math.max(1, Number(event.target.value))); setSelectedSlot(''); }}
+                    onChange={(event) => {
+                      setPartySize(Math.max(1, Number(event.target.value)));
+                      setSelectedSlot('');
+                    }}
                   />
                 </label>
                 {service.mode === 'stay' ? (
@@ -272,7 +501,10 @@ export function App() {
                       min={1}
                       max={14}
                       value={nights}
-                      onChange={(event) => { setNights(Math.max(1, Number(event.target.value))); setSelectedSlot(''); }}
+                      onChange={(event) => {
+                        setNights(Math.max(1, Number(event.target.value)));
+                        setSelectedSlot('');
+                      }}
                     />
                   </label>
                 ) : null}
@@ -281,7 +513,11 @@ export function App() {
               <div className="slot-section">
                 <div className="section-label">
                   <Clock3 aria-hidden="true" />
-                  <span>{slots.length > 0 ? `${slots.length} available option${slots.length === 1 ? '' : 's'}` : 'No availability for this date'}</span>
+                  <span>
+                    {slots.length > 0
+                      ? `${slots.length} available option${slots.length === 1 ? '' : 's'}`
+                      : 'No availability for this date'}
+                  </span>
                 </div>
                 <div className="slot-grid">
                   {slots.slice(0, 24).map((slot) => {
@@ -294,7 +530,10 @@ export function App() {
                         className="slot"
                         data-active={active}
                         aria-pressed={active}
-                        onClick={() => { setSelectedSlot(key); setReceipt(null); }}
+                        onClick={() => {
+                          setSelectedSlot(key);
+                          setReceipt(null);
+                        }}
                       >
                         <strong>{formatSlot(slot.start)}</strong>
                         <span>{resourceLabel(business, slot.resourceId)}</span>
@@ -313,21 +552,60 @@ export function App() {
               <div className="input-row two-column">
                 <label>
                   Name
-                  <input required autoComplete="name" value={guest.name} onChange={(event) => updateGuest('name', event.target.value)} />
+                  <input
+                    required
+                    autoComplete="name"
+                    value={guest.name}
+                    onChange={(event) => updateGuest('name', event.target.value)}
+                  />
                 </label>
                 <label>
                   Email
-                  <input required type="email" autoComplete="email" value={guest.email} onChange={(event) => updateGuest('email', event.target.value)} />
+                  <input
+                    required
+                    type="email"
+                    autoComplete="email"
+                    value={guest.email}
+                    onChange={(event) => updateGuest('email', event.target.value)}
+                  />
                 </label>
                 <label>
                   Phone
-                  <input type="tel" autoComplete="tel" value={guest.phone} onChange={(event) => updateGuest('phone', event.target.value)} />
+                  <input
+                    type="tel"
+                    autoComplete="tel"
+                    value={guest.phone}
+                    onChange={(event) => updateGuest('phone', event.target.value)}
+                  />
                 </label>
                 <label>
                   Notes
-                  <input value={guest.notes} onChange={(event) => updateGuest('notes', event.target.value)} placeholder="Accessibility, seating or other needs" />
+                  <input
+                    value={guest.notes}
+                    onChange={(event) => updateGuest('notes', event.target.value)}
+                    placeholder="Accessibility, seating or other needs"
+                  />
                 </label>
               </div>
+
+              {(service.intakeFields?.length ?? 0) > 0 ? (
+                <section className="intake-section" aria-labelledby="intake-title">
+                  <div>
+                    <p className="eyebrow">Service intake</p>
+                    <h3 id="intake-title">A few details help prepare the appointment</h3>
+                  </div>
+                  <div className="intake-grid">
+                    {(service.intakeFields ?? []).map((field) => (
+                      <IntakeControl
+                        key={field.id}
+                        field={field}
+                        value={intake[field.id] ?? ''}
+                        onChange={(value) => updateIntake(field.id, value)}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ) : null}
             </fieldset>
 
             <div className="checkout-bar">
@@ -335,7 +613,11 @@ export function App() {
                 <span>{service.name} · {duration}</span>
                 <strong>{price}</strong>
               </div>
-              <button className="primary-button" type="submit" disabled={!chosenSlot}>
+              <button
+                className="primary-button"
+                type="submit"
+                disabled={!chosenSlot || !intakeComplete}
+              >
                 {business.policy.requiresApproval ? 'Request reservation' : 'Confirm reservation'}
               </button>
             </div>
@@ -346,7 +628,7 @@ export function App() {
           <div className="panel-heading">
             <div>
               <p className="eyebrow">Configuration preview</p>
-              <h2>Operational model</h2>
+              <h2>Shared booking capabilities</h2>
             </div>
             <Settings2 aria-hidden="true" />
           </div>
@@ -359,10 +641,27 @@ export function App() {
           </div>
 
           <section className="panel-section">
+            <h3>Composable components</h3>
+            <div className="capability-list">
+              <span>Service + duration</span>
+              <span>Delivery / location</span>
+              <span>Resource + capacity</span>
+              <span>Availability + buffers</span>
+              <span>Customer intake</span>
+              <span>Approval + deposits</span>
+              <span>Reservation status</span>
+              <span>Pluggable persistence</span>
+            </div>
+          </section>
+
+          <section className="panel-section">
             <h3>Resource semantics</h3>
             {business.resources.map((resource) => (
               <div className="resource-row" key={resource.id}>
-                <div><strong>{resource.name}</strong><span>{resource.kind} · {resource.sharing}</span></div>
+                <div>
+                  <strong>{resource.name}</strong>
+                  <span>{resource.kind} · {resource.sharing}</span>
+                </div>
                 <span>capacity {resource.capacity}</span>
               </div>
             ))}
@@ -375,17 +674,30 @@ export function App() {
               <div className="reservation-row" key={reservation.id}>
                 <div>
                   <strong>{reservation.guest.name}</strong>
-                  <span>{new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(reservation.start))}</span>
+                  <span>
+                    {new Intl.DateTimeFormat(undefined, {
+                      dateStyle: 'medium',
+                      timeStyle: 'short',
+                    }).format(new Date(reservation.start))}
+                  </span>
                 </div>
                 <span className="status" data-status={reservation.status}>{reservation.status}</span>
               </div>
             ))}
           </section>
 
-          <button className="text-button" type="button" onClick={clearDemoData} disabled={reservations.length === 0}>
-            <RotateCcw aria-hidden="true" /> Reset local demo data
+          <button
+            className="text-button"
+            type="button"
+            onClick={resetDemoData}
+          >
+            <RotateCcw aria-hidden="true" /> Reset relative demo data
           </button>
-          <p className="footnote">This MVP stores demo reservations in this browser. The domain and storage boundary are separated so production deployments can replace it with a transactional API.</p>
+          <p className="footnote">
+            The demo uses a local reservation-store adapter and re-seeds example appointments
+            relative to the current day. Production can replace that adapter with a transactional
+            API without changing the scheduling domain.
+          </p>
         </aside>
       </main>
     </div>
