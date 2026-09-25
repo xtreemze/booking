@@ -63,11 +63,11 @@ function ReservationReceipt(props: {
 
 export default function BookingApp() {
   const today = dateInputValue(new Date());
-  const [businessId, setBusinessId] = createSignal(defaultBusiness.id);
+  const [businessId, setBusinessId] = createSignal<string>(defaultBusiness.id);
   const business = createMemo<BusinessConfig>(
     () => businesses.find((item) => item.id === businessId()) ?? defaultBusiness,
   );
-  const [serviceId, setServiceId] = createSignal(defaultBusiness.services[0]?.id ?? '');
+  const [serviceId, setServiceId] = createSignal<string>(defaultBusiness.services[0]?.id ?? '');
   const service = createMemo(() => business().services.find((item) => item.id === serviceId()) ?? business().services[0]);
   const [date, setDate] = createSignal(today);
   const [partySize, setPartySize] = createSignal(1);
