@@ -5,6 +5,7 @@ import {
   formatMoney,
   formatSlot,
   type AvailableSlot,
+  type DeliveryMode,
   type Reservation,
 } from '@booking/domain';
 import { css, html, LitElement, type PropertyValues } from 'lit';
@@ -16,6 +17,7 @@ export interface BookingSlotSelectedDetail {
   readonly start: string;
   readonly end: string;
   readonly partySize: number;
+  readonly deliveryMode: DeliveryMode;
 }
 
 function dateInputValue(date: Date): string {
@@ -32,6 +34,7 @@ export class BookingWidget extends LitElement {
     date: { state: true },
     partySize: { state: true },
     serviceId: { state: true },
+    deliveryMode: { state: true },
   };
 
   static override styles = css`
@@ -54,6 +57,8 @@ export class BookingWidget extends LitElement {
     .controls, .services, .slots { display: grid; gap: 0.75rem; }
     .controls { grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); }
     .services, .slots { grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); }
+    .delivery { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .delivery button { text-align: center; }
     label { display: grid; gap: 0.35rem; }
     input, button {
       min-height: 2.75rem;
@@ -82,6 +87,7 @@ export class BookingWidget extends LitElement {
   private declare date: string;
   private declare partySize: number;
   private declare serviceId: string;
+  private declare deliveryMode: DeliveryMode;
 
   constructor() {
     super();
@@ -90,6 +96,7 @@ export class BookingWidget extends LitElement {
     this.date = dateInputValue(new Date());
     this.partySize = 1;
     this.serviceId = defaultBusiness.services[0]?.id ?? '';
+    this.deliveryMode = defaultBusiness.services[0]?.deliveryModes?.[0] ?? 'business';
   }
 
   protected override updated(changed: PropertyValues<this>): void {
@@ -97,6 +104,7 @@ export class BookingWidget extends LitElement {
     const business = this.business;
     this.serviceId = business.services[0]?.id ?? '';
     this.partySize = 1;
+    this.deliveryMode = business.services[0]?.deliveryModes?.[0] ?? 'business';
   }
 
   private get business() {
@@ -128,6 +136,7 @@ export class BookingWidget extends LitElement {
           start: slot.start.toISOString(),
           end: slot.end.toISOString(),
           partySize: this.partySize,
+          deliveryMode: this.deliveryMode,
         },
         bubbles: true,
         composed: true,
@@ -157,10 +166,27 @@ export class BookingWidget extends LitElement {
                 @click=${() => {
                   this.serviceId = item.id;
                   this.partySize = 1;
+                  this.deliveryMode = item.deliveryModes?.[0] ?? 'business';
                 }}
               >
                 <strong>${item.name}</strong><br />
                 <small>${formatMoney(item.priceCents, business.currency)}</small>
+              </button>
+            `,
+          )}
+        </div>
+
+        <div class="delivery" role="group" aria-label="Service delivery">
+          ${(service.deliveryModes ?? ['business']).map(
+            (mode) => html`
+              <button
+                type="button"
+                aria-pressed=${mode === this.deliveryMode}
+                @click=${() => {
+                  this.deliveryMode = mode;
+                }}
+              >
+                ${mode === 'business' ? 'At the business' : mode === 'customer' ? 'At your location' : 'Online'}
               </button>
             `,
           )}
