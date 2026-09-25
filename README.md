@@ -60,3 +60,7 @@ The Vite production base is `/booking/` so the built site can deploy directly as
 The current browser persistence adapter uses `localStorage`. It is not a production multi-user reservation database.
 
 A production deployment must replace that adapter with a transactional API/database and revalidate capacity atomically when a reservation is committed. The shared domain package stays independent from persistence and UI frameworks so backend and client implementations can converge on the same reservation vocabulary.
+
+## License
+
+Proprietary. All rights reserved. No permission is granted to use, copy, modify, distribute, deploy, or create derivative works without prior express written permission from the copyright holder. See [`LICENSE`](LICENSE).
