@@ -111,6 +111,10 @@ function isString(value: unknown): value is string {
   return typeof value === 'string';
 }
 
+function property(record: Record<string, unknown>, key: string): unknown {
+  return record[key];
+}
+
 function isStatus(value: unknown): value is ReservationStatus {
   return value === 'confirmed' || value === 'pending' || value === 'cancelled';
 }
@@ -123,10 +127,10 @@ function isGuest(value: unknown): value is Guest {
   if (!value || typeof value !== 'object') return false;
   const guest = value as Record<string, unknown>;
   return (
-    isString(guest['name']) &&
-    isString(guest['email']) &&
-    isString(guest['phone']) &&
-    isString(guest['notes'])
+    isString(property(guest, 'name')) &&
+    isString(property(guest, 'email')) &&
+    isString(property(guest, 'phone')) &&
+    isString(property(guest, 'notes'))
   );
 }
 
@@ -138,33 +142,39 @@ function isIntake(value: unknown): value is Readonly<Record<string, string>> {
 function isReservation(value: unknown): value is Reservation {
   if (!value || typeof value !== 'object') return false;
   const item = value as Record<string, unknown>;
+  const partySize = property(item, 'partySize');
+  const customerId = property(item, 'customerId');
+  const deliveryMode = property(item, 'deliveryMode');
+  const intake = property(item, 'intake');
+
   return (
-    isString(item['id']) &&
-    isString(item['businessId']) &&
-    isString(item['serviceId']) &&
-    isString(item['resourceId']) &&
-    isString(item['start']) &&
-    isString(item['end']) &&
-    typeof item['partySize'] === 'number' &&
-    Number.isInteger(item['partySize']) &&
-    item['partySize'] > 0 &&
-    isStatus(item['status']) &&
-    isGuest(item['guest']) &&
-    isString(item['createdAt']) &&
-    (item['customerId'] === undefined || isString(item['customerId'])) &&
-    (item['deliveryMode'] === undefined || isDeliveryMode(item['deliveryMode'])) &&
-    (item['intake'] === undefined || isIntake(item['intake']))
+    isString(property(item, 'id')) &&
+    isString(property(item, 'businessId')) &&
+    isString(property(item, 'serviceId')) &&
+    isString(property(item, 'resourceId')) &&
+    isString(property(item, 'start')) &&
+    isString(property(item, 'end')) &&
+    typeof partySize === 'number' &&
+    Number.isInteger(partySize) &&
+    partySize > 0 &&
+    isStatus(property(item, 'status')) &&
+    isGuest(property(item, 'guest')) &&
+    isString(property(item, 'createdAt')) &&
+    (customerId === undefined || isString(customerId)) &&
+    (deliveryMode === undefined || isDeliveryMode(deliveryMode)) &&
+    (intake === undefined || isIntake(intake))
   );
 }
 
 function isStoredReservations(value: unknown): value is StoredReservations {
   if (!value || typeof value !== 'object') return false;
   const envelope = value as Record<string, unknown>;
+  const reservations = property(envelope, 'reservations');
   return (
-    envelope['version'] === STORAGE_VERSION &&
-    isString(envelope['seededOn']) &&
-    Array.isArray(envelope['reservations']) &&
-    envelope['reservations'].every(isReservation)
+    property(envelope, 'version') === STORAGE_VERSION &&
+    isString(property(envelope, 'seededOn')) &&
+    Array.isArray(reservations) &&
+    reservations.every(isReservation)
   );
 }
 
