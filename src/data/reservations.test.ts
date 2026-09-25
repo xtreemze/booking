@@ -38,13 +38,12 @@ describe('relative local demo reservations', () => {
   it('migrates legacy local reservations into the async provider', async () => {
     const storage = memoryStorage();
     const now = new Date(2026, 0, 5, 9, 0, 0);
-    const legacyReservation = {
-      ...createExampleReservations(now)[0],
+    const seed = createExampleReservations(now)[0];
+    expect(seed).toBeDefined();
+    const legacyReservation: Reservation = {
+      ...(seed as Reservation),
       id: 'legacy-user-reservation',
-      customerId: undefined,
-      deliveryMode: undefined,
-      intake: undefined,
-    } as Reservation;
+    };
 
     storage.setItem('booking.reservations.v1', JSON.stringify([legacyReservation]));
     const store = createLocalReservationStore(storage, () => now);
