@@ -1,6 +1,6 @@
 # Architecture
 
-Booking is modeled around capabilities rather than business categories. A barber, clinician, table, room, studio, piece of equipment, or virtual host is a **resource**. A haircut, consultation, dinner seating, hotel stay, or class is a **service**. A reservation consumes capacity on one resource for an interval.
+Booking is modeled around capabilities rather than business categories. A barber, clinician, table, room, studio, piece of equipment, consultant, or virtual host is a **resource**. A haircut, consultation, dinner seating, hotel stay, class, or other appointment is a **service**. A reservation consumes capacity on one or more resources for an interval.
 
 ## Domain invariants
 
@@ -17,14 +17,22 @@ Booking is modeled around capabilities rather than business categories. A barber
 The repository separates product-domain authority from delivery technology:
 
 1. `packages/domain` — framework-independent types, presets, and deterministic availability rules. This is the canonical scheduling source.
-2. `packages/booking-widget` — Lit custom element for portable public booking/availability surfaces.
-3. `src/data` — persistence adapter. The current implementation uses `localStorage` only for a zero-infrastructure demo.
-4. `src/App.tsx` — React application shell and operator/configuration preview.
-5. `src/domain` — compatibility re-exports while callers migrate to `@booking/domain`.
+2. `apps/web` — Astro application shell. Astro owns routing, static composition, document metadata, and deployable web output.
+3. `apps/web/src/components` — SolidJS client islands for stateful booking and future operator/admin workflows.
+4. `apps/web/src/data` — persistence adapters. The current implementation uses `localStorage` only for a zero-infrastructure demonstration.
+5. `packages/booking-widget` — Lit custom element for portable public booking/availability surfaces.
+6. `packages/governance` — versioned governance/control metadata independent of the product UI.
+7. `services/*` — future independently deployable transactional and integration services.
 
-React remains the application framework for dense operator/admin workflows. Lit is deliberately limited to the embeddable web-component boundary, where framework independence and Shadow DOM encapsulation are product capabilities.
+Astro is the application and routing boundary rather than a second state-management framework. Stateful, continuously interactive surfaces are implemented as Solid islands. Lit is deliberately limited to the embeddable custom-element boundary, where framework independence and Shadow DOM encapsulation are product capabilities.
 
-The `<booking-widget>` element consumes the same domain package as React and emits a composed `booking-slot-selected` custom event. It does not own authoritative reservation persistence. A host application or production API must perform the reservation commit.
+The `<booking-widget>` element and Solid application consume the same `@booking/domain` package. The widget emits a composed `booking-slot-selected` custom event and does not own authoritative reservation persistence. A host application or production API must perform the reservation commit.
+
+## Rendering policy
+
+Prefer Astro-rendered HTML for static or content-oriented surfaces. Hydrate only the interaction boundary that requires browser state. The current booking demonstration uses a client-only Solid island because its minimum booking date and local demo reservations are intentionally relative to the visitor's browser time and storage.
+
+Future public business/service pages can remain primarily static Astro documents while mounting smaller Solid islands for availability, account, checkout, or operator controls.
 
 ## Production boundary
 

@@ -1,0 +1,26 @@
+---
+// biome-ignore lint/correctness/noUnusedImports: Astro consumes this component in the template below.
+import BookingApp from '../components/BookingApp';
+import '../styles/global.css';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta
+      name="description"
+      content="A configurable reservation system for appointments, spaces, capacity, stays, and other bookable services."
+    />
+    <meta name="generator" content={Astro.generator} />
+    <title>Booking</title>
+  </head>
+  <body>
+    <BookingApp client:only="solid-js" />
+    <noscript>Booking requires JavaScript for live availability and local demo reservations.</noscript>
+    <script>
+      import '@booking/widget';
+    </script>
+  </body>
+</html>

@@ -2,26 +2,40 @@
 
 A configurable reservation system for businesses that sell time, access, space, or capacity.
 
-The project avoids separate products for barbers, clinics, restaurants, hotels, classes, and rentals. Those businesses are configurations of shared scheduling primitives: **services**, **resources**, **capacity**, **availability**, and **booking policy**.
+The product models barbers, clinics, restaurants, hotels, classes, rentals, consultations, and other bookable services as configurations of shared scheduling primitives: **services**, **resources**, **capacity**, **availability**, and **booking policy**.
 
 ## Architecture
 
-The frontend decision is deliberately split by responsibility:
+Booking is an npm monorepo with explicit delivery boundaries:
 
-- **TypeScript domain package** — canonical scheduling types, presets, and availability rules.
-- **React 19.3** — application/admin composition and the configuration preview.
-- **Lit 3.3** — portable `<booking-widget>` custom element for framework-independent embedding.
-- **Vite 8** — application build and GitHub Pages static deployment.
-- **Vitest + Playwright** — deterministic domain tests plus desktop/mobile browser regression coverage.
-- **Biome** — repository linting and formatting.
+- **Astro 7** in `apps/web` owns routing, static composition, the GitHub Pages build, and future content-oriented surfaces.
+- **SolidJS** provides fine-grained client islands for the interactive booking and operator experience.
+- **TypeScript domain package** in `packages/domain` is the canonical framework-independent scheduling model.
+- **Lit** in `packages/booking-widget` provides the portable `<booking-widget>` custom element for framework-independent embedding.
+- **Vite 8** is the build/runtime toolchain underneath Astro.
+- **Biome 2.5** owns linting and formatting across the workspace.
+- **Vitest + Playwright** cover deterministic domain behavior and desktop/mobile browser flows.
 
-The React application and Lit widget consume the same `@booking/domain` workspace package. GitHub Pages is a static demonstration boundary only; production reservation commits require a transactional backend.
+Astro and Lit consume the same `@booking/domain` package. UI layers may present availability but never own scheduling validity. GitHub Pages remains a static demonstration boundary; production reservation commits require a transactional backend.
 
 See [`docs/architecture.md`](docs/architecture.md) for invariants and backend direction.
 
+## Workspace
+
+```text
+apps/
+  web/                    Astro application and Solid client islands
+packages/
+  domain/                 framework-independent booking domain
+  booking-widget/         Lit custom element
+  governance/             standards/control metadata
+services/                  future deployable backend services
+tools/                     repository, governance, and evidence checks
+```
+
 ## What works now
 
-The responsive application includes five live presets:
+The responsive demonstration includes five live presets:
 
 - **Barber** — staff-bound appointments with cleanup buffers.
 - **Clinic** — staff appointments that can require approval.
@@ -29,7 +43,7 @@ The responsive application includes five live presets:
 - **Hotel** — variable-length stays against exclusive room inventory.
 - **Studio / class** — pooled shared capacity.
 
-Reservations made through the React demo immediately affect subsequent availability and persist in the browser. The Lit widget exposes the same availability model as an embeddable custom element and emits selection events for a host to handle.
+Reservations made through the Solid booking island immediately affect subsequent availability and persist in the browser. The Lit widget exposes the same availability model as an embeddable custom element and emits selection events for a host to handle.
 
 ## Development
 
@@ -53,7 +67,7 @@ Formatting:
 npm run format
 ```
 
-The Vite production base is `/booking/` so the built site can deploy directly as this repository's GitHub Pages project site.
+The Astro site is built under the `/booking/` base and outputs to `apps/web/dist` for GitHub Pages.
 
 ## Production boundary
 

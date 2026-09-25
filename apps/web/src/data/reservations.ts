@@ -1,4 +1,4 @@
-import type { Guest, Reservation, ReservationStatus } from '../domain/types';
+import type { Guest, Reservation, ReservationStatus } from '@booking/domain';
 
 const STORAGE_KEY = 'booking.reservations.v1';
 
@@ -41,6 +41,7 @@ function isReservation(value: unknown): value is Reservation {
 }
 
 export function loadReservations(): readonly Reservation[] {
+  if (typeof localStorage === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
@@ -53,6 +54,7 @@ export function loadReservations(): readonly Reservation[] {
 }
 
 export function persistReservations(reservations: readonly Reservation[]): void {
+  if (typeof localStorage === 'undefined') return;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(reservations));
 }
 
