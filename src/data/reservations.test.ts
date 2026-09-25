@@ -35,11 +35,11 @@ describe('relative local demo reservations', () => {
     expect(later[0]?.start).not.toBe(first[0]?.start);
   });
 
-  it('rebases seeded examples on a new day while preserving visitor-created local bookings', () => {
+  it('rebases seeded examples on a new day while preserving visitor-created local bookings', async () => {
     const storage = memoryStorage();
     let now = new Date(2026, 0, 5, 9, 0, 0);
     const store = createLocalReservationStore(storage, () => now);
-    const seeded = store.load();
+    const seeded = await store.load();
     const originalExampleStart = seeded[0]?.start;
 
     const visitorSeed = seeded.find((reservation) => reservation.customerId === VISITOR_CUSTOMER_ID);
@@ -50,10 +50,10 @@ describe('relative local demo reservations', () => {
       id: 'user-created-reservation',
       createdAt: now.toISOString(),
     };
-    store.save([...seeded, userReservation]);
+    await store.save([...seeded, userReservation]);
 
     now = new Date(2026, 0, 6, 9, 0, 0);
-    const rebased = store.load();
+    const rebased = await store.load();
 
     expect(rebased).toHaveLength(seeded.length + 1);
     expect(rebased.find((reservation) => reservation.id === userReservation.id)).toEqual(userReservation);
