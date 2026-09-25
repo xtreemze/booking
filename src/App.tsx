@@ -9,7 +9,6 @@ import {
   Clock3,
   Dumbbell,
   GraduationCap,
-  Home,
   MapPin,
   Palette,
   PawPrint,
@@ -325,7 +324,7 @@ export function App() {
     service.mode === 'stay'
       ? formatMoney(service.priceCents * nights, business.currency)
       : formatMoney(service.priceCents, business.currency);
-  const serviceDeliveryModes = service.deliveryModes ?? ['business'];
+  const serviceDeliveryModes: readonly DeliveryMode[] = service.deliveryModes ?? ['business'];
   const intakeComplete = requiredIntakeComplete(service, intake);
 
   return (
