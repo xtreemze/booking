@@ -1,9 +1,24 @@
-export type BusinessPreset = 'barber' | 'clinic' | 'restaurant' | 'hotel' | 'studio';
+export type BusinessPreset =
+  | 'barber'
+  | 'clinic'
+  | 'restaurant'
+  | 'hotel'
+  | 'studio'
+  | 'interior-design'
+  | 'audio-consulting'
+  | 'legal'
+  | 'tutoring'
+  | 'home-service'
+  | 'photography'
+  | 'beauty'
+  | 'pet-care';
 
 export type BookingMode = 'appointment' | 'capacity' | 'stay';
 export type ResourceKind = 'person' | 'table' | 'room' | 'equipment' | 'space' | 'virtual';
 export type ResourceSharing = 'exclusive' | 'pooled';
 export type ReservationStatus = 'confirmed' | 'pending' | 'cancelled';
+export type DeliveryMode = 'business' | 'customer' | 'virtual';
+export type IntakeFieldType = 'text' | 'textarea' | 'select';
 
 export interface TimeWindow {
   readonly start: string;
@@ -22,6 +37,15 @@ export interface BookingPolicy {
   readonly depositPercent: number;
 }
 
+export interface IntakeField {
+  readonly id: string;
+  readonly label: string;
+  readonly type: IntakeFieldType;
+  readonly required: boolean;
+  readonly placeholder?: string;
+  readonly options?: readonly string[];
+}
+
 export interface Service {
   readonly id: string;
   readonly name: string;
@@ -33,6 +57,8 @@ export interface Service {
   readonly priceCents: number;
   readonly maxPartySize: number;
   readonly resourceKinds: readonly ResourceKind[];
+  readonly deliveryModes?: readonly DeliveryMode[];
+  readonly intakeFields?: readonly IntakeField[];
   readonly startTimes?: readonly string[];
 }
 
@@ -77,6 +103,9 @@ export interface Reservation {
   readonly status: ReservationStatus;
   readonly guest: Guest;
   readonly createdAt: string;
+  readonly customerId?: string;
+  readonly deliveryMode?: DeliveryMode;
+  readonly intake?: Readonly<Record<string, string>>;
 }
 
 export interface AvailabilityRequest {
